@@ -424,3 +424,44 @@ FROM daily_count dlc
 JOIN day_counts dc
   ON dlc.day_of_week_number = dc.day_of_week_number
 ORDER BY dlc.day_of_week_number, user_count DESC;
+
+--- traffic by age group 
+--- output: 
+
+WITH daily_count AS (
+  SELECT 
+    EXTRACT(DAYOFWEEK FROM o.created_at) AS day_of_week_number,
+    CASE EXTRACT(DAYOFWEEK FROM o.created_at)
+      WHEN 1 THEN 'Sunday'
+      WHEN 2 THEN 'Monday'
+      WHEN 3 THEN 'Tuesday'
+      WHEN 4 THEN 'Wednesday'
+      WHEN 5 THEN 'Thursday'
+      WHEN 6 THEN 'Friday'
+      WHEN 7 THEN 'Saturday'
+    END AS day_of_week,
+    CASE 
+      WHEN age < 20 THEN 'Under 20'
+      WHEN age >= 20 AND age < 40 THEN '20 to 40'
+      WHEN age >= 40 AND age < 60 THEN '40 to 60'
+      ELSE '60+'
+    END AS age_group,
+    traffic_source,
+    COUNT(DISTINCT user_id) AS user_count
+  FROM bigquery-public-data.thelook_ecommerce.orders o  
+  LEFT JOIN bigquery-public-data.thelook_ecommerce.users us 
+    ON o.user_id = us.id       
+  WHERE DATE(o.created_at) BETWEEN '2021-05-01' AND '2022-05-01'
+  GROUP BY age_group, day_of_week_number, day_of_week, traffic_source
+  ORDER BY day_of_week_number, user_count DESC
+)
+SELECT 
+  dlc.day_of_week_number,
+  dlc.day_of_week,
+  dlc.age_group,
+  dlc.traffic_source,
+  dlc.user_count,
+  SUM(dlc.user_count) OVER (PARTITION BY dlc.day_of_week_number, dlc.day_of_week) AS total_user,
+  ROUND(dlc.user_count / (SUM(dlc.user_count) OVER (PARTITION BY dlc.day_of_week_number, dlc.day_of_week)),2) AS pct_of_total
+FROM daily_count dlc
+ORDER BY dlc.day_of_week_number, user_count DESC;

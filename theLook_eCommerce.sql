@@ -15,8 +15,8 @@ WITH daily_orders AS (
       WHEN 7 THEN 'Saturday'
     END AS day_of_week,
     COUNT(DISTINCT order_id) AS order_count
-  FROM `bigquery-public-data.thelook_ecommerce.orders`
-  WHERE created_at IS NOT NULL
+  FROM bigquery-public-data.thelook_ecommerce.orders
+  WHERE DATE(created_at) BETWEEN '2021-05-01' AND '2022-05-01'
   GROUP BY order_date, day_of_week_number, day_of_week
 ),
 orders_by_day_of_week AS (
@@ -29,8 +29,8 @@ orders_by_day_of_week AS (
 ),
 day_counts AS (
   SELECT 
-    EXTRACT(DAYOFWEEK FROM date) AS day_of_week_number,
-    CASE EXTRACT(DAYOFWEEK FROM date)
+    EXTRACT(DAYOFWEEK FROM order_date) AS day_of_week_number,
+    CASE EXTRACT(DAYOFWEEK FROM order_date)
       WHEN 1 THEN 'Sunday'
       WHEN 2 THEN 'Monday'
       WHEN 3 THEN 'Tuesday'
@@ -40,12 +40,11 @@ day_counts AS (
       WHEN 7 THEN 'Saturday'
     END AS day_of_week,
     COUNT(*) AS day_count
-  FROM UNNEST(
-    GENERATE_DATE_ARRAY(
-      (SELECT DATE(MIN(created_at)) FROM `bigquery-public-data.thelook_ecommerce.orders`),
-      (SELECT DATE(MAX(created_at)) FROM `bigquery-public-data.thelook_ecommerce.orders`)
-    )
-  ) AS date
+  FROM (SELECT DISTINCT DATE(created_at) AS order_date
+  FROM bigquery-public-data.thelook_ecommerce.orders
+  WHERE created_at IS NOT NULL
+  AND DATE(created_at) BETWEEN '2021-05-01' AND '2022-05-01'
+  )
   GROUP BY day_of_week_number, day_of_week
 )
 SELECT 

@@ -1,3 +1,15 @@
+--- Number of users and orders with completed status
+--- Output: month_year, total_user, total_order
+SELECT
+  FORMAT_TIMESTAMP('%Y-%m', created_at) AS month_year,
+  COUNT(DISTINCT user_id) AS total_user,
+  COUNT(order_id) AS total_order,
+FROM bigquery-public-data.thelook_ecommerce.orders
+WHERE status = 'Complete'
+  AND FORMAT_TIMESTAMP('%Y-%m', created_at) BETWEEN '2021-05' AND '2022-04'
+GROUP BY FORMAT_TIMESTAMP('%Y-%m', created_at)
+ORDER BY FORMAT_TIMESTAMP('%Y-%m', created_at);
+
 --- Average order per day of week
 --- Output: day_of_week_number, day_of_week, avg_orders_per_day
 
